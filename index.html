@@ -4,8 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SOTOMED | Generador de Hojas de Servicio</title>
+
+  <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- XLSX -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- QRious -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -26,9 +32,12 @@
       padding: 2rem;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
+    h2 {
+      margin-top: 1.5rem;
+    }
     label {
       display: block;
-      margin-top: 1rem;
+      margin-top: 0.75rem;
     }
     input, textarea, select {
       width: 100%;
@@ -36,15 +45,24 @@
       margin-top: 0.25rem;
       border: 1px solid #ccc;
       border-radius: 4px;
+      box-sizing: border-box;
     }
     button {
-      margin-top: 1.5rem;
+      margin-top: 1rem;
+      margin-right: 0.5rem;
       background-color: #003366;
       color: white;
-      padding: 0.75rem 1.5rem;
+      padding: 0.6rem 1.2rem;
       border: none;
       border-radius: 4px;
       cursor: pointer;
+    }
+    button.secondary {
+      background-color: #666;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
     footer {
       text-align: center;
@@ -53,7 +71,19 @@
     }
     canvas {
       border: 1px solid #ccc;
+      margin-top: 0.5rem;
+    }
+    #linkGenerado {
       margin-top: 1rem;
+      word-wrap: break-word;
+      font-size: 0.9rem;
+    }
+    #qrCanvas {
+      margin-top: 1rem;
+    }
+    .center {
+      text-align: center;
+      margin-bottom: 2rem;
     }
   </style>
 </head>
@@ -65,17 +95,35 @@
 
   <form id="serviceForm">
     <h2>Datos del Cliente</h2>
-    <label>Nombre del Cliente: <input type="text" name="cliente" required /></label>
-    <label>Teléfono: <input type="text" name="telefono" /></label>
-    <label>Dirección: <input type="text" name="direccion" /></label>
-    <label>Responsable del Laboratorio: <input type="text" name="responsable" /></label>
-    <label>Correo Electrónico: <input type="email" name="email" /></label>
+    <label>Nombre del Cliente:
+      <input type="text" name="cliente" required />
+    </label>
+    <label>Teléfono:
+      <input type="text" name="telefono" />
+    </label>
+    <label>Dirección:
+      <input type="text" name="direccion" />
+    </label>
+    <label>Responsable del Laboratorio:
+      <input type="text" name="responsable" />
+    </label>
+    <label>Correo Electrónico:
+      <input type="email" name="email" />
+    </label>
 
     <h2>Datos del Equipo</h2>
-    <label>Tipo de Equipo: <input type="text" name="equipo" /></label>
-    <label>Marca/Modelo: <input type="text" name="modelo" /></label>
-    <label>Número de Serie: <input type="text" name="serie" /></label>
-    <label>Status Reportado: <input type="text" name="status" /></label>
+    <label>Tipo de Equipo:
+      <input type="text" name="equipo" />
+    </label>
+    <label>Marca/Modelo:
+      <input type="text" name="modelo" />
+    </label>
+    <label>Número de Serie:
+      <input type="text" name="serie" />
+    </label>
+    <label>Status Reportado:
+      <input type="text" name="status" />
+    </label>
 
     <h2>Servicio</h2>
     <label>Tipo de Servicio:
@@ -85,12 +133,24 @@
         <option>Otro</option>
       </select>
     </label>
-    <label>Fecha de Reporte: <input type="date" name="fecha_reporte" /></label>
-    <label>Hora de Reporte: <input type="time" name="hora_reporte" /></label>
-    <label>Fecha del Servicio: <input type="date" name="fecha_servicio" /></label>
-    <label>Hora de Inicio: <input type="time" name="hora_inicio" /></label>
-    <label>Fecha de Término del Servicio: <input type="date" name="fecha_termino" /></label>
-    <label>Hora de Término: <input type="time" name="hora_termino" /></label>
+    <label>Fecha de Reporte:
+      <input type="date" name="fecha_reporte" />
+    </label>
+    <label>Hora de Reporte:
+      <input type="time" name="hora_reporte" />
+    </label>
+    <label>Fecha del Servicio:
+      <input type="date" name="fecha_servicio" />
+    </label>
+    <label>Hora de Inicio:
+      <input type="time" name="hora_inicio" />
+    </label>
+    <label>Fecha de Término del Servicio:
+      <input type="date" name="fecha_termino" />
+    </label>
+    <label>Hora de Término:
+      <input type="time" name="hora_termino" />
+    </label>
     <label>Descripción del Problema:
       <textarea name="problema" rows="4"></textarea>
     </label>
@@ -99,97 +159,100 @@
     </label>
 
     <h2>Firma de Conformidad</h2>
-    <canvas id="firmaCanvas" width="500" height="100"></canvas>
-    <button type="button" onclick="limpiarFirma()">Limpiar Firma</button>
+    <canvas id="firmaCanvas" width="500" height="100"></canvas><br />
+    <button type="button" class="secondary" onclick="limpiarFirma()">Limpiar Firma</button>
 
-    <button type="submit">Generar PDF</button>
-
+    <h2>Acciones</h2>
+    <button type="submit">Generar PDF y guardar registro</button>
     <button type="button" onclick="generarEnlace()">Generar link para firmar en otro dispositivo</button>
-    <div id="linkGenerado" style="margin-top: 1rem; word-wrap: break-word;"></div>
-    <canvas id="qrCanvas" style="margin-top: 1rem;"></canvas>
-
+    <div id="linkGenerado"></div>
+    <canvas id="qrCanvas"></canvas>
   </form>
 
-  <div style="text-align: center;">
-    <button onclick="descargarExcel()">Descargar Reporte Excel</button>
+  <div class="center">
+    <button type="button" onclick="descargarExcel()">Descargar Reporte Excel</button>
   </div>
 
   <footer>
     <p>Contacto: s_marentes@hotmail.com | Tel: 614 127 0727</p>
   </footer>
 
+  <!-- LÓGICA PRINCIPAL -->
   <script>
-    let firmaCanvas = document.getElementById("firmaCanvas");
-    let ctx = firmaCanvas.getContext("2d");
-    let dibujando = false;
     const dbKey = 'sotomed_pdf_data';
 
-    firmaCanvas.addEventListener("mousedown", () => dibujando = true);
-    firmaCanvas.addEventListener("mouseup", () => dibujando = false);
-    firmaCanvas.addEventListener("mousemove", dibujar);
-    // Mouse
-    firmaCanvas.addEventListener("mousedown", () => dibujando = true);
-    firmaCanvas.addEventListener("mouseup", () => {
-      dibujando = false;
-      ctx.beginPath();
-    });
-    firmaCanvas.addEventListener("mousemove", dibujar);
+    // ---- FIRMA (Mouse + Touch) ----
+    const firmaCanvas = document.getElementById("firmaCanvas");
+    const ctx = firmaCanvas.getContext("2d");
+    let dibujando = false;
 
-    // Touch
-    firmaCanvas.addEventListener("touchstart", (e) => {
+    function getPosicionCanvas(e) {
+      const rect = firmaCanvas.getBoundingClientRect();
+      if (e.touches && e.touches.length) {
+        const t = e.touches[0];
+        return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+      } else {
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+    }
+
+    function empezarDibujo(e) {
       dibujando = true;
-      const rect = firmaCanvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+      const pos = getPosicionCanvas(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
       e.preventDefault();
-    });
+    }
 
-    firmaCanvas.addEventListener("touchend", () => {
+    function terminarDibujo(e) {
       dibujando = false;
       ctx.beginPath();
-    });
-
-    firmaCanvas.addEventListener("touchmove", (e) => {
-      if (!dibujando) return;
-      const rect = firmaCanvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      ctx.lineWidth = 2;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = "black";
-      ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
-      e.preventDefault();
-    });
-
+      e && e.preventDefault();
+    }
 
     function dibujar(e) {
       if (!dibujando) return;
-      const rect = firmaCanvas.getBoundingClientRect();
+      const pos = getPosicionCanvas(e);
       ctx.lineWidth = 2;
       ctx.lineCap = "round";
       ctx.strokeStyle = "black";
-      ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.lineTo(pos.x, pos.y);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+      ctx.moveTo(pos.x, pos.y);
+      e.preventDefault();
     }
+
+    // Eventos mouse
+    firmaCanvas.addEventListener("mousedown", empezarDibujo);
+    firmaCanvas.addEventListener("mouseup", terminarDibujo);
+    firmaCanvas.addEventListener("mouseleave", terminarDibujo);
+    firmaCanvas.addEventListener("mousemove", dibujar);
+
+    // Eventos touch
+    firmaCanvas.addEventListener("touchstart", empezarDibujo, { passive: false });
+    firmaCanvas.addEventListener("touchend", terminarDibujo, { passive: false });
+    firmaCanvas.addEventListener("touchcancel", terminarDibujo, { passive: false });
+    firmaCanvas.addEventListener("touchmove", dibujar, { passive: false });
 
     function limpiarFirma() {
       ctx.clearRect(0, 0, firmaCanvas.width, firmaCanvas.height);
     }
 
-    document.getElementById('serviceForm').addEventListener('submit', async function(event) {
+    // ---- GENERAR PDF Y GUARDAR REGISTRO ----
+    document.getElementById('serviceForm').addEventListener('submit', function(event) {
       event.preventDefault();
+
       const form = event.target;
       const data = new FormData(form);
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
 
       const hoy = new Date();
-      const folio = `SOT-${hoy.getFullYear()}${(hoy.getMonth()+1).toString().padStart(2,'0')}${hoy.getDate().toString().padStart(2,'0')}-${Math.floor(Math.random()*900+100)}`;
+      const folio = `SOT-${hoy.getFullYear()}${String(hoy.getMonth()+1).padStart(2,'0')}${String(hoy.getDate()).padStart(2,'0')}-${Math.floor(Math.random()*900+100)}`;
 
+      // Encabezado
       doc.setFillColor(0, 51, 102);
       doc.rect(0, 0, 210, 20, 'F');
       doc.setTextColor(255, 255, 255);
@@ -203,28 +266,35 @@
       doc.text("Correo: s_marentes@hotmail.com | Tel: 614 127 0727", 10, 25);
 
       let y = 35;
+
       const secciones = {
-        'Datos del Cliente': ['cliente', 'telefono', 'direccion', 'responsable', 'email'],
-        'Datos del Equipo': ['equipo', 'modelo', 'serie', 'status'],
-        'Servicio': ['tipo_servicio', 'fecha_reporte', 'hora_reporte', 'fecha_servicio', 'hora_inicio', 'fecha_termino', 'hora_termino', 'problema', 'solucion']
+        "Datos del Cliente": ["cliente", "telefono", "direccion", "responsable", "email"],
+        "Datos del Equipo": ["equipo", "modelo", "serie", "status"],
+        "Servicio": ["tipo_servicio", "fecha_reporte", "hora_reporte", "fecha_servicio", "hora_inicio", "fecha_termino", "hora_termino", "problema", "solucion"]
       };
 
+      // Objeto que SÍ guardamos en localStorage (ligero)
       const registro = { folio, fecha: hoy.toISOString().split('T')[0] };
 
       for (const [titulo, campos] of Object.entries(secciones)) {
         doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
+        doc.setFont(undefined, "bold");
         doc.text(titulo, 10, y);
         y += 7;
-        doc.setFont(undefined, 'normal');
+
+        doc.setFont(undefined, "normal");
         doc.setFontSize(10);
+
         for (const campo of campos) {
-          const label = campo.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-          const value = data.get(campo) || '';
+          const label = campo.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+          const value = data.get(campo) || "";
           registro[campo] = value;
-          const lines = doc.splitTextToSize(`${label}: ${value}`, 190);
+
+          const texto = `${label}: ${value}`;
+          const lines = doc.splitTextToSize(texto, 190);
           doc.text(lines, 10, y);
           y += lines.length * 6;
+
           if (y > 250) {
             doc.addPage();
             y = 20;
@@ -233,67 +303,85 @@
         y += 5;
       }
 
+      // Firma
       const firmaImg = firmaCanvas.toDataURL("image/png");
-      doc.setFont(undefined, 'bold');
+      doc.setFont(undefined, "bold");
       doc.text("Firma de Conformidad:", 10, y);
       doc.addImage(firmaImg, "PNG", 10, y + 5, 60, 20);
 
+      // Pie de página
       doc.setFontSize(8);
       doc.setTextColor(150);
       doc.text("SOTOMED | s_marentes@hotmail.com | 614 127 0727", 10, 285);
       doc.text("Calidad, confianza y tecnología al servicio de tu laboratorio", 10, 290);
 
-      // 🔹 Aquí ya NO guardamos el PDF en base64, solo los datos
+      // Guardar SOLO los datos en localStorage (sin PDF)
       try {
-        const registros = JSON.parse(localStorage.getItem(dbKey) || '[]');
+        const registros = JSON.parse(localStorage.getItem(dbKey) || "[]");
         registros.push(registro);
         localStorage.setItem(dbKey, JSON.stringify(registros));
       } catch (e) {
         console.error("Error guardando en localStorage", e);
-        alert("Hubo un problema guardando el registro. Revisa el espacio de almacenamiento del navegador.");
+        alert("Hubo un problema guardando el registro en este navegador.");
       }
 
+      // Descargar PDF
       doc.save(`${folio}.pdf`);
     });
 
+    // ---- DESCARGAR EXCEL ----
     function descargarExcel() {
-      const registros = JSON.parse(localStorage.getItem(dbKey) || '[]');
-      if (!registros.length) return alert("No hay registros para exportar");
-      const ws = XLSX.utils.json_to_sheet(registros);
+      const registros = JSON.parse(localStorage.getItem(dbKey) || "[]");
+      if (!registros.length) {
+        alert("No hay registros para exportar. Genera al menos una hoja de servicio primero.");
+        return;
+      }
+
+      // Por si quedan registros viejos con pdfBase64, los limpiamos
+      const datosLimpios = registros.map(r => {
+        const copia = { ...r };
+        delete copia.pdfBase64;
+        return copia;
+      });
+
+      const ws = XLSX.utils.json_to_sheet(datosLimpios);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "ReporteSOTOMED");
       XLSX.writeFile(wb, "Reporte_SOTOMED.xlsx");
     }
   </script>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <!-- LINK PARA FIRMAR EN OTRO DISPOSITIVO + QR -->
   <script>
     function generarEnlace() {
-      const form = document.getElementById('serviceForm');
+      const form = document.getElementById("serviceForm");
       const data = new FormData(form);
       const params = new URLSearchParams();
+
       for (const [key, value] of data.entries()) {
         params.append(key, value);
       }
-      const url = window.location.origin + window.location.pathname + '?' + params.toString();
-      document.getElementById('linkGenerado').innerHTML = '<strong>Enlace para firmar:</strong><br><a href="' + url + '" target="_blank">' + url + '</a>';
 
+      const url = window.location.origin + window.location.pathname + "?" + params.toString();
+      const contenedor = document.getElementById("linkGenerado");
+      contenedor.innerHTML = '<strong>Enlace para firmar:</strong><br><a href="' + url + '" target="_blank">' + url + '</a>';
+
+      const qrCanvas = document.getElementById("qrCanvas");
       const qr = new QRious({
-        element: document.getElementById('qrCanvas'),
+        element: qrCanvas,
         value: url,
         size: 200
       });
     }
 
+    // Si se abre con parámetros en la URL, rellenar el formulario
     window.addEventListener("load", () => {
       const params = new URLSearchParams(window.location.search);
-      for (const [key, value] of params.entries()) {
+      params.forEach((value, key) => {
         const field = document.querySelector(`[name="${key}"]`);
         if (field) field.value = value;
-      }
+      });
     });
   </script>
-
 </body>
 </html>
-
