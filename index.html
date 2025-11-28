@@ -243,15 +243,15 @@
       doc.text("SOTOMED | s_marentes@hotmail.com | 614 127 0727", 10, 285);
       doc.text("Calidad, confianza y tecnología al servicio de tu laboratorio", 10, 290);
 
-      const pdfBlob = doc.output("blob");
-      const reader = new FileReader();
-      reader.onload = function() {
-        registro.pdfBase64 = reader.result;
+      // 🔹 Aquí ya NO guardamos el PDF en base64, solo los datos
+      try {
         const registros = JSON.parse(localStorage.getItem(dbKey) || '[]');
         registros.push(registro);
         localStorage.setItem(dbKey, JSON.stringify(registros));
-      };
-      reader.readAsDataURL(pdfBlob);
+      } catch (e) {
+        console.error("Error guardando en localStorage", e);
+        alert("Hubo un problema guardando el registro. Revisa el espacio de almacenamiento del navegador.");
+      }
 
       doc.save(`${folio}.pdf`);
     });
@@ -259,44 +259,41 @@
     function descargarExcel() {
       const registros = JSON.parse(localStorage.getItem(dbKey) || '[]');
       if (!registros.length) return alert("No hay registros para exportar");
-      const ws = XLSX.utils.json_to_sheet(registros.map(r => {
-        const copia = { ...r };
-        delete copia.pdfBase64;
-        return copia;
-      }));
+      const ws = XLSX.utils.json_to_sheet(registros);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "ReporteSOTOMED");
       XLSX.writeFile(wb, "Reporte_SOTOMED.xlsx");
     }
   </script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-<script>
-  function generarEnlace() {
-    const form = document.getElementById('serviceForm');
-    const data = new FormData(form);
-    const params = new URLSearchParams();
-    for (const [key, value] of data.entries()) {
-      params.append(key, value);
-    }
-    const url = window.location.origin + window.location.pathname + '?' + params.toString();
-    document.getElementById('linkGenerado').innerHTML = '<strong>Enlace para firmar:</strong><br><a href="' + url + '" target="_blank">' + url + '</a>';
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <script>
+    function generarEnlace() {
+      const form = document.getElementById('serviceForm');
+      const data = new FormData(form);
+      const params = new URLSearchParams();
+      for (const [key, value] of data.entries()) {
+        params.append(key, value);
+      }
+      const url = window.location.origin + window.location.pathname + '?' + params.toString();
+      document.getElementById('linkGenerado').innerHTML = '<strong>Enlace para firmar:</strong><br><a href="' + url + '" target="_blank">' + url + '</a>';
 
-    const qr = new QRious({
-      element: document.getElementById('qrCanvas'),
-      value: url,
-      size: 200
+      const qr = new QRious({
+        element: document.getElementById('qrCanvas'),
+        value: url,
+        size: 200
+      });
+    }
+
+    window.addEventListener("load", () => {
+      const params = new URLSearchParams(window.location.search);
+      for (const [key, value] of params.entries()) {
+        const field = document.querySelector(`[name="${key}"]`);
+        if (field) field.value = value;
+      }
     });
-  }
-
-  window.addEventListener("load", () => {
-    const params = new URLSearchParams(window.location.search);
-    for (const [key, value] of params.entries()) {
-      const field = document.querySelector(`[name="${key}"]`);
-      if (field) field.value = value;
-    }
-  });
-</script>
+  </script>
 
 </body>
 </html>
+
